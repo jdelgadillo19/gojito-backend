@@ -1,0 +1,22 @@
+{
+  "name": "gojito-backend",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-05-06",
+
+  // Recommended: create KV with `wrangler kv namespace create GOJITO_KV --preview` and paste IDs here.
+  // Binding keeps entitlement + Stripe dedupe keys separate from client-visible Firebase docs.
+  "kv_namespaces": [
+    {
+      "binding": "GOJITO_KV",
+      "id": "REPLACE_ME_KV_ID",
+      "preview_id": "REPLACE_ME_PREVIEW_KV_ID"
+    }
+  ],
+
+  // Secrets via `wrangler secret put STRIPE_SECRET_KEY` / `wrangler secret put STRIPE_WEBHOOK_SECRET`
+  // Vars via `.dev.vars` for local dev.
+  "vars": {
+    "FIREBASE_PROJECT_ID": "cakery-bakery",
+    "STRIPE_PRICE_ID_PREMIUM_ANNUAL": ""
+  }
+}

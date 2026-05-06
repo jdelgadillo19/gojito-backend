@@ -1,0 +1,21 @@
+{
+  "name": "gojito-backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "grant-guac": "node scripts/grant-guac.mjs"
+  },
+  "dependencies": {
+    "hono": "^4.10.7",
+    "jose": "^6.1.3",
+    "stripe": "^20.2.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251129.0",
+    "typescript": "~5.9.3",
+    "wrangler": "^4.55.0"
+  }
+}
