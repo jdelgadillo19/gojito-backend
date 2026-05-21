@@ -1,6 +1,6 @@
 import type { Context } from 'hono'
 import type { WorkerBindings } from '../app'
-import { requireFirebaseUid } from '../lib/firebaseJwt'
+import { requireSupabaseUserId } from '../lib/supabaseJwt'
 
 type EnvCtx = Context<{ Bindings: WorkerBindings }>
 
@@ -11,7 +11,11 @@ type EnvCtx = Context<{ Bindings: WorkerBindings }>
 export async function previewBeanMigration(c: EnvCtx): Promise<Response> {
   let uid: string
   try {
-    uid = await requireFirebaseUid(c.req.header('authorization'), c.env.FIREBASE_PROJECT_ID)
+    uid = await requireSupabaseUserId(
+      c.req.header('authorization'),
+      c.env.SUPABASE_JWT_SECRET,
+      c.env.SUPABASE_URL,
+    )
   } catch {
     return c.json({ error: 'unauthorized' }, 401)
   }
@@ -48,7 +52,7 @@ export async function previewBeanMigration(c: EnvCtx): Promise<Response> {
   const merged = mergeMaxProgress(beanSave, cloudSave)
 
   return c.json({
-    firebaseUid: uid,
+    userId: uid,
     policy: 'max_progression_wins',
     mergedPreview: merged,
   })

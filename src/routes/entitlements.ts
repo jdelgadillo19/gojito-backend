@@ -1,30 +1,34 @@
 import type { Context } from 'hono'
 import type { WorkerBindings } from '../app'
-import { requireFirebaseUid } from '../lib/firebaseJwt'
+import { requireSupabaseUserId } from '../lib/supabaseJwt'
 import { readEntitlement } from '../lib/entitlementKv'
 
 type EnvCtx = Context<{ Bindings: WorkerBindings }>
 
 /**
- * Returns entitlement snapshot for the authenticated Firebase user.
- * profileTier: `beef` (free account) | `guac` (paid entitlement active).
+ * Returns entitlement snapshot for the authenticated Supabase user.
+ * accessTier: `beef` (free account) | `guac` (paid entitlement active; requires guacActive).
  */
 export async function getMyEntitlement(c: EnvCtx): Promise<Response> {
   let uid: string
   try {
-    uid = await requireFirebaseUid(c.req.header('authorization'), c.env.FIREBASE_PROJECT_ID)
+    uid = await requireSupabaseUserId(
+      c.req.header('authorization'),
+      c.env.SUPABASE_JWT_SECRET,
+      c.env.SUPABASE_URL,
+    )
   } catch {
     return c.json({ error: 'unauthorized' }, 401)
   }
 
   const snap = await readEntitlement(c.env.GOJITO_KV, uid)
-
-  const profileTier: 'beef' | 'guac' = snap?.guacActive ? 'guac' : snap?.tier ?? 'beef'
+  const guacActive = Boolean(snap?.guacActive)
+  const accessTier: 'beef' | 'guac' = guacActive ? 'guac' : 'beef'
 
   return c.json({
-    firebaseUid: uid,
-    profileTier,
-    guacActive: Boolean(snap?.guacActive),
+    userId: uid,
+    accessTier,
+    guacActive,
     stripeCustomerId: snap?.stripeCustomerId ?? null,
     stripeSubscriptionId: snap?.stripeSubscriptionId ?? null,
     guacExpiresAt: snap?.guacExpiresAt ?? null,

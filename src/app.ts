@@ -7,7 +7,8 @@ import { postAdminEntitlements } from './routes/adminEntitlements'
 
 export type WorkerBindings = {
   GOJITO_KV: KVNamespace
-  FIREBASE_PROJECT_ID: string
+  SUPABASE_URL: string
+  SUPABASE_JWT_SECRET: string
   STRIPE_PRICE_ID_PREMIUM_ANNUAL: string
   STRIPE_WEBHOOK_SECRET: string
   GOJITO_ADMIN_SECRET?: string

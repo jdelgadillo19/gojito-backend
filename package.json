@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "verify:deploy": "node scripts/verify-wrangler-config.mjs",
+    "deploy": "npm run verify:deploy && wrangler deploy",
     "typecheck": "tsc --noEmit",
     "grant-guac": "node scripts/grant-guac.mjs"
   },

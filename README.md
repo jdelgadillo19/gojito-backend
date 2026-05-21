@@ -1,8 +1,8 @@
 # gojito-backend
 
-Cloudflare Workers API for Gojito Games (**recommended** placement).
+Cloudflare Workers API for Gojito Games.
 
-## Setup (recommended path)
+## Setup
 
 1. Create a KV namespace and paste IDs into `wrangler.jsonc`:
 
@@ -18,63 +18,48 @@ wrangler kv namespace create GOJITO_KV --preview
 npm install
 ```
 
-3. Local secrets file `.dev.vars` (do not commit):
+Before deploying, run `npm run verify:deploy` (also runs automatically via `npm run deploy`). It fails if KV namespace IDs are still `REPLACE_ME_*` or `SUPABASE_URL` is empty in `wrangler.jsonc`. Set secrets with `wrangler secret put` (see below).
 
-```
-STRIPE_WEBHOOK_SECRET=whsec_...
-GOJITO_ADMIN_SECRET=your-long-random-secret
-```
+3. Local secrets (do not commit `.dev.vars`). See `.dev.vars.example`:
 
-`FIREBASE_PROJECT_ID` is defaulted in `wrangler.jsonc` (`cakery-bakery`); override per env if needed.
+- `SUPABASE_URL` — project URL, e.g. `https://xxxxx.supabase.co`
+- `SUPABASE_JWT_SECRET` — **JWT Secret** from Supabase Dashboard → Project Settings → API (used to verify user access tokens)
+- `STRIPE_WEBHOOK_SECRET`, `GOJITO_ADMIN_SECRET` as needed
 
-Production:
-
-```bash
-wrangler secret put STRIPE_WEBHOOK_SECRET
-wrangler secret put GOJITO_ADMIN_SECRET
-```
+Set `SUPABASE_URL` in `wrangler.jsonc` `vars` for deployed Workers, and use `wrangler secret put SUPABASE_JWT_SECRET` (and Stripe secrets) in production.
 
 4. Stripe webhook URL:
 
 - Point Stripe webhook endpoint to `https://<your-worker-host>/webhooks/stripe`
 
-## Stripe linkage requirement
+## Stripe linkage
 
-Include Firebase UID on Stripe Checkout metadata:
+Include the Supabase user id on Stripe Checkout metadata so checkout can link the Stripe customer to KV entitlements:
 
-- `firebase_uid=<FirebaseAuth UID>`
+- `supabase_user_id=<uuid from auth.users>`
 
-Checkout completion links `customer` ↔ `firebase_uid`. Subscription lifecycle sets **`guacActive`** (paid tier).
+Subscription lifecycle updates **`guacActive`** from Stripe events.
 
-## Admin API (beta / manual Guac)
-
-**Recommended:** grant or revoke sitewide paid tier without Stripe:
+## Admin API (manual Guac)
 
 ```bash
 curl -sS -X POST "https://<worker>/api/admin/entitlements" \
   -H "Content-Type: application/json" \
   -H "X-Gojito-Admin-Secret: $GOJITO_ADMIN_SECRET" \
-  -d '{"firebaseUid":"<Firebase UID>","grantGuac":true}'
+  -d '{"userId":"<supabase-user-uuid>","grantGuac":true}'
 ```
 
-`grantGuac: false` revokes Guac (sets Beef).
-
-### CLI helper (same API)
-
-From `gojito-backend/` (loads secrets from your shell env — **do not** commit them):
+### CLI helper
 
 ```bash
 GOJITO_API_URL="https://<worker>" GOJITO_ADMIN_SECRET="$GOJITO_ADMIN_SECRET" \
-  npm run grant-guac -- "<Firebase UID>" true
-
-GOJITO_API_URL="https://<worker>" GOJITO_ADMIN_SECRET="$GOJITO_ADMIN_SECRET" \
-  npm run grant-guac -- "<Firebase UID>" false
+  npm run grant-guac -- "<userId>" true
 ```
 
 ## Routes
 
 - `GET /health`
 - `POST /webhooks/stripe`
-- `GET /api/entitlements/me` (Bearer Firebase ID token) → `{ profileTier: beef | guac, guacActive, ... }`
-- `POST /api/migrations/bean-preview` (Bearer Firebase ID token, JSON `{ beanSave, cloudSave? }`)
-- `POST /api/admin/entitlements` (`X-Gojito-Admin-Secret`, JSON `{ firebaseUid, grantGuac }`)
+- `GET /api/entitlements/me` (Bearer Supabase access token) → `{ userId, accessTier, guacActive, ... }`
+- `POST /api/migrations/bean-preview` (Bearer Supabase access token, JSON `{ beanSave, cloudSave? }`)
+- `POST /api/admin/entitlements` (`X-Gojito-Admin-Secret`, JSON `{ userId, grantGuac }`)

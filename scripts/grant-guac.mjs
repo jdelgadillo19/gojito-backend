@@ -1,14 +1,10 @@
 #!/usr/bin/env node
 /**
- * Selectively grant or revoke Guac for one Firebase Auth UID (writes Workers KV via admin API).
+ * Grant or revoke Guac for one Supabase Auth user id (Workers KV via admin API).
  *
  * Usage:
  *   GOJITO_API_URL=https://<worker-host> GOJITO_ADMIN_SECRET=<secret> \
- *     node scripts/grant-guac.mjs <firebaseUid> [true|false]
- *
- * Examples:
- *   node scripts/grant-guac.mjs abc123xyz true    # grant Guac
- *   node scripts/grant-guac.mjs abc123xyz false   # revoke → Beef
+ *     node scripts/grant-guac.mjs <userId> [true|false]
  */
 
 const uid = process.argv[2]?.trim()
@@ -21,7 +17,7 @@ const secret = (process.env.GOJITO_ADMIN_SECRET ?? '').trim()
 
 if (!uid) {
   console.error(
-    'Usage: GOJITO_API_URL=https://<worker> GOJITO_ADMIN_SECRET=... node scripts/grant-guac.mjs <firebaseUid> [true|false]',
+    'Usage: GOJITO_API_URL=https://<worker> GOJITO_ADMIN_SECRET=... node scripts/grant-guac.mjs <userId> [true|false]',
   )
   process.exit(1)
 }
@@ -38,7 +34,7 @@ const res = await fetch(url, {
     'Content-Type': 'application/json',
     'X-Gojito-Admin-Secret': secret,
   },
-  body: JSON.stringify({ firebaseUid: uid, grantGuac }),
+  body: JSON.stringify({ userId: uid, grantGuac }),
 })
 
 const text = await res.text()

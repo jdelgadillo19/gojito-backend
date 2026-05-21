@@ -1,0 +1,10 @@
+# Copy to `.dev.vars` for `wrangler dev` (never commit `.dev.vars`).
+SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+SUPABASE_JWT_SECRET=your-jwt-secret-from-supabase-dashboard-api-settings
+STRIPE_WEBHOOK_SECRET=whsec_...
+GOJITO_ADMIN_SECRET=your-long-random-secret
+
+# Production deploy also requires wrangler.jsonc:
+# - Real GOJITO_KV namespace id + preview_id (not REPLACE_ME_*)
+# - vars.SUPABASE_URL set to the same project URL
+# Run: npm run verify:deploy

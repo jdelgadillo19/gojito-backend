@@ -9,7 +9,7 @@ type EnvCtx = Context<{ Bindings: WorkerBindings }>
  * Recommended: grant or revoke Guac (paid) access for beta / manual overrides.
  * Protected by `X-Gojito-Admin-Secret` (set via `wrangler secret put GOJITO_ADMIN_SECRET`).
  *
- * Body: `{ "firebaseUid": "<uid>", "grantGuac": true | false }`
+ * Body: `{ "userId": "<supabase-auth-uuid>", "grantGuac": true | false }`
  */
 export async function postAdminEntitlements(c: EnvCtx): Promise<Response> {
   const configured = c.env.GOJITO_ADMIN_SECRET?.trim()
@@ -33,24 +33,24 @@ export async function postAdminEntitlements(c: EnvCtx): Promise<Response> {
     return c.json({ error: 'invalid_body' }, 400)
   }
 
-  const firebaseUid =
-    'firebaseUid' in body && typeof (body as { firebaseUid?: unknown }).firebaseUid === 'string'
-      ? (body as { firebaseUid: string }).firebaseUid.trim()
+  const userId =
+    'userId' in body && typeof (body as { userId?: unknown }).userId === 'string'
+      ? (body as { userId: string }).userId.trim()
       : ''
   const grantGuac =
     'grantGuac' in body && typeof (body as { grantGuac?: unknown }).grantGuac === 'boolean'
       ? (body as { grantGuac: boolean }).grantGuac
       : null
 
-  if (!firebaseUid || grantGuac === null) {
-    return c.json({ error: 'missing_firebaseUid_or_grantGuac' }, 400)
+  if (!userId || grantGuac === null) {
+    return c.json({ error: 'missing_userId_or_grantGuac' }, 400)
   }
 
-  await upsertEntitlement(c.env.GOJITO_KV, firebaseUid, {
+  await upsertEntitlement(c.env.GOJITO_KV, userId, {
     tier: grantGuac ? 'guac' : 'beef',
     guacActive: grantGuac,
     ...(grantGuac ? {} : { guacExpiresAt: null }),
   })
 
-  return c.json({ ok: true, firebaseUid, grantGuac })
+  return c.json({ ok: true, userId, grantGuac })
 }

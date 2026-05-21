@@ -44,7 +44,7 @@ async function dispatchStripeEvent(kv: KVNamespace, event: Stripe.Event) {
         typeof session.customer === 'string'
           ? session.customer
           : session.customer?.id ?? null
-      const firebaseUid = metaFirebaseUid(session.metadata)
+      const userId = metaSupabaseUserId(session.metadata)
       const subscriptionId =
         typeof session.subscription === 'string'
           ? session.subscription
@@ -52,15 +52,16 @@ async function dispatchStripeEvent(kv: KVNamespace, event: Stripe.Event) {
 
       if (customerId) {
         const existing = await readStripeCustomerLink(kv, customerId)
-        const mergedUid = firebaseUid ?? existing?.firebaseUid ?? null
+        const mergedUid = userId ?? existing?.userId ?? null
         await writeStripeCustomerLink(kv, customerId, mergedUid)
       }
 
-      if (firebaseUid && customerId) {
-        await upsertEntitlement(kv, firebaseUid, {
+      if (userId && customerId) {
+        await upsertEntitlement(kv, userId, {
           stripeCustomerId: customerId,
           stripeSubscriptionId: subscriptionId,
           tier: 'guac',
+          guacActive: true,
         })
       }
 
@@ -72,26 +73,26 @@ async function dispatchStripeEvent(kv: KVNamespace, event: Stripe.Event) {
       const sub = event.data.object as Stripe.Subscription
       const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer?.id ?? null
 
-      let firebaseUid = metaFirebaseUid(sub.metadata)
-      if (!firebaseUid && customerId) {
+      let userId = metaSupabaseUserId(sub.metadata)
+      if (!userId && customerId) {
         const link = await readStripeCustomerLink(kv, customerId)
-        firebaseUid = link?.firebaseUid ?? null
+        userId = link?.userId ?? null
       }
 
       if (customerId) {
-        await writeStripeCustomerLink(kv, customerId, firebaseUid ?? null)
+        await writeStripeCustomerLink(kv, customerId, userId ?? null)
       }
 
-      if (!firebaseUid) break
+      if (!userId) break
 
-      const eligible =
-        sub.status === 'active' || sub.status === 'trialing'
+      const eligible = sub.status === 'active' || sub.status === 'trialing'
 
-      await upsertEntitlement(kv, firebaseUid, {
-        tier: 'guac',
+      await upsertEntitlement(kv, userId, {
+        tier: eligible ? 'guac' : 'beef',
         stripeCustomerId: customerId,
         stripeSubscriptionId: sub.id,
         guacActive: eligible,
+        ...(eligible ? {} : { guacExpiresAt: null }),
       })
 
       break
@@ -101,9 +102,13 @@ async function dispatchStripeEvent(kv: KVNamespace, event: Stripe.Event) {
   }
 }
 
-function metaFirebaseUid(metadata: Stripe.Metadata | null): string | null {
+function metaSupabaseUserId(metadata: Stripe.Metadata | null): string | null {
   if (!metadata) return null
-  const raw = metadata.firebase_uid ?? metadata.firebaseUid ?? null
+  const raw =
+    metadata.supabase_user_id ??
+    metadata.supabaseUserId ??
+    metadata.user_id ??
+    null
   if (!raw || typeof raw !== 'string') return null
   const trimmed = raw.trim()
   return trimmed ? trimmed : null

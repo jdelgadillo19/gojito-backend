@@ -8,7 +8,7 @@ export type StoredEntitlement = {
 }
 
 export type StripeCustomerLink = {
-  firebaseUid: string | null
+  userId: string | null
   stripeCustomerId: string
   updatedAt: number
 }
@@ -110,9 +110,10 @@ export async function readStripeCustomerLink(
   if (!raw || typeof raw !== 'object') return null
   const l = raw as Partial<StripeCustomerLink>
   if (typeof l.stripeCustomerId !== 'string') return null
+  const userId =
+    typeof l.userId === 'string' || l.userId === null ? l.userId : null
   return {
-    firebaseUid:
-      typeof l.firebaseUid === 'string' || l.firebaseUid === null ? l.firebaseUid : null,
+    userId,
     stripeCustomerId: l.stripeCustomerId,
     updatedAt: typeof l.updatedAt === 'number' ? l.updatedAt : Date.now(),
   }
@@ -121,11 +122,11 @@ export async function readStripeCustomerLink(
 export async function writeStripeCustomerLink(
   kv: KVNamespace,
   customerId: string,
-  firebaseUid: string | null,
+  userId: string | null,
 ): Promise<void> {
   const payload: StripeCustomerLink = {
     stripeCustomerId: customerId,
-    firebaseUid,
+    userId,
     updatedAt: Date.now(),
   }
   await kv.put(stripeCustomerLinkKey(customerId), JSON.stringify(payload))
